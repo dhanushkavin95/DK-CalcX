@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="advancedCalculatorApp">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DK CalcX</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+</head>
+<body ng-controller="CalculatorController" ng-class="{'dark-theme': isDarkTheme}">
+    <header>
+        <h1><i class="fas fa-calculator"></i> DK CalcX</h1>
+        <nav>
+            <ul>
+                <li><a href="#" ng-click="setMode('basic')" ng-class="{'active': mode === 'basic'}"><i class="fas fa-plus-minus"></i> Basic</a></li>
+                <li><a href="#" ng-click="setMode('scientific')" ng-class="{'active': mode === 'scientific'}"><i class="fas fa-atom"></i> Scientific</a></li>
+                <li><a href="#" ng-click="setMode('finance')" ng-class="{'active': mode === 'finance'}"><i class="fas fa-chart-line"></i> Finance</a></li>
+                <li><a href="#" ng-click="setMode('converter')" ng-class="{'active': mode === 'converter'}"><i class="fas fa-exchange-alt"></i> Converter</a></li>
+                <li><a href="#" ng-click="setMode('matrix')" ng-class="{'active': mode === 'matrix'}"><i class="fas fa-th"></i> Matrix</a></li>
+                <li><a href="#" ng-click="setMode('graphing')" ng-class="{'active': mode === 'graphing'}"><i class="fas fa-chart-area"></i> Graphing</a></li>
+                <li><a href="#" ng-click="setMode('equation')" ng-class="{'active': mode === 'equation'}"><i class="fas fa-equals"></i> Equation</a></li>
+                <li><a href="#" ng-click="setMode('statistics')" ng-class="{'active': mode === 'statistics'}"><i class="fas fa-chart-bar"></i> Statistics</a></li>
+                <li><a href="#" ng-click="setMode('factorial')" ng-class="{'active': mode === 'factorial'}"><i class="fas fa-exclamation"></i> Factorial</a></li>
+                <li><a href="#" ng-click="setMode('scientific-notation')" ng-class="{'active': mode === 'scientific-notation'}"><i class="fas fa-superscript"></i> Scientific Notation</a></li>
+            </ul>
+        </nav>
+        <button id="theme-toggle" ng-click="toggleTheme()">
+            <i class="fas" ng-class="{'fa-sun': isDarkTheme, 'fa-moon': !isDarkTheme}"></i>
+        </button>
+    </header>
+
+    <main>
+        <div class="calculator">
+            <div class="display">
+                <input type="text" id="result" ng-model="display" readonly>
+            </div>
+            <div class="buttons" ng-show="mode === 'basic' || mode === 'scientific'">
+                <button ng-repeat="btn in currentButtons" ng-click="handleInput(btn.value)" ng-class="btn.class">{{btn.label}}</button>
+            </div>
+            <div class="finance-tools" ng-show="mode === 'finance'">
+                <select ng-model="selectedTool">
+                    <option value="compound-interest">Compound Interest</option>
+                    <option value="loan-payment">Loan Payment</option>
+                </select>
+                <div ng-show="selectedTool === 'compound-interest'">
+                    <input type="number" ng-model="principal" placeholder="Principal">
+                    <input type="number" ng-model="rate" placeholder="Annual Interest Rate (%)">
+                    <input type="number" ng-model="time" placeholder="Time (years)">
+                    <input type="number" ng-model="compound" placeholder="Compounds per year">
+                    <button ng-click="calculateCompoundInterest()">Calculate</button>
+                </div>
+                <div ng-show="selectedTool === 'loan-payment'">
+                    <input type="number" ng-model="loanAmount" placeholder="Loan Amount">
+                    <input type="number" ng-model="loanRate" placeholder="Annual Interest Rate (%)">
+                    <input type="number" ng-model="loanTerm" placeholder="Loan Term (years)">
+                    <button ng-click="calculateLoanPayment()">Calculate</button>
+                </div>
+                <div ng-show="financialResult">
+                    <h3>Results:</h3>
+                    <p ng-show="selectedTool === 'compound-interest'">
+                        Total Amount: {{financialResult.totalAmount}}<br>
+                        Interest Earned: {{financialResult.interestEarned}}
+                    </p>
+                    <p ng-show="selectedTool === 'loan-payment'">
+                        Monthly Payment: {{financialResult.monthlyPayment}}<br>
+                        Total Interest: {{financialResult.totalInterest}}<br>
+                        Total Payment: {{financialResult.totalPayment}}
+                    </p>
+                </div>
+            </div>
+            <div class="converter" ng-show="mode === 'converter'">
+                <select ng-model="conversionType">
+                    <option value="length">Length</option>
+                    <option value="weight">Weight</option>
+                    <option value="temperature">Temperature</option>
+                    <option value="volume">Volume</option>
+                    <option value="area">Area</option>
+                </select>
+                <input type="number" ng-model="fromValue" placeholder="From Value">
+                <select ng-model="fromUnit" ng-options="unit for unit in getUnits(conversionType)"></select>
+                <select ng-model="toUnit" ng-options="unit for unit in getUnits(conversionType)"></select>
+                <button ng-click="convert()">Convert</button>
+                <p>Result: {{conversionResult}}</p>
+            </div>
+            <div class="matrix-calculator" ng-show="mode === 'matrix'">
+                <h3>Matrix Calculator</h3>
+                <div>
+                    <h4>Matrix A</h4>
+                    <input type="number" ng-model="matrixA[0][0]">
+                    <input type="number" ng-model="matrixA[0][1]">
+                    <input type="number" ng-model="matrixA[1][0]">
+                    <input type="number" ng-model="matrixA[1][1]">
+                </div>
+                <div>
+                    <h4>Matrix B</h4>
+                    <input type="number" ng-model="matrixB[0][0]">
+                    <input type="number" ng-model="matrixB[0][1]">
+                    <input type="number" ng-model="matrixB[1][0]">
+                    <input type="number" ng-model="matrixB[1][1]">
+                </div>
+                <button ng-click="matrixOperation('add')">Add</button>
+                <button ng-click="matrixOperation('subtract')">Subtract</button>
+                <button ng-click="matrixOperation('multiply')">Multiply</button>
+                <button ng-click="matrixOperation('inverse')">Inverse (A)</button>
+                <button ng-click="matrixOperation('determinant')">Determinant (A)</button>
+                <div>
+                    <h4>Result</h4>
+                    <p>{{matrixResult}}</p>
+                </div>
+            </div>
+
+            <div class="graphing-calculator" ng-show="mode === 'graphing'">
+                <h3>Graphing Calculator</h3>
+                <input type="text" ng-model="graphEquation" placeholder="Enter equation (e.g., y = x^2)">
+                <button ng-click="plotGraph()">Plot Graph</button>
+                <div id="graph-container"></div>
+            </div>
+
+            <div class="equation-solver" ng-show="mode === 'equation'">
+                <h3>Equation Solver</h3>
+                <input type="text" ng-model="equationToSolve" placeholder="Enter equation (e.g., x^2 + 2x - 3 = 0)">
+                <button ng-click="solveEquation()">Solve</button>
+                <p>Solution: {{equationSolution}}</p>
+            </div>
+
+            <div class="statistics-calculator" ng-show="mode === 'statistics'">
+                <h3>Statistics Calculator</h3>
+                <input type="text" ng-model="newDataPoint" placeholder="Enter a number">
+                <button ng-click="dataSet.push(parseFloat(newDataPoint)); newDataPoint = ''">Add Data Point</button>
+                <p>Data Set: {{dataSet.join(', ')}}</p>
+                <button ng-click="calculateStatistics()">Calculate Statistics</button>
+                <div ng-show="statisticsResult">
+                    <p>Mean: {{statisticsResult.mean}}</p>
+                    <p>Median: {{statisticsResult.median}}</p>
+                    <p>Mode: {{statisticsResult.mode}}</p>
+                    <p>Standard Deviation: {{statisticsResult.standardDeviation}}</p>
+                    <p>Variance: {{statisticsResult.variance}}</p>
+                </div>
+            </div>
+
+            <div class="factorial-calculator" ng-show="mode === 'factorial'">
+                <h3>Factorial Calculator</h3>
+                <input type="number" ng-model="factorialNumber" placeholder="Enter a number">
+                <button ng-click="calculateFactorial()">Calculate Factorial</button>
+                <p>Result: {{factorialResult}}</p>
+            </div>
+
+            <div class="scientific-notation-converter" ng-show="mode === 'scientific-notation'">
+                <h3>Scientific Notation Converter</h3>
+                <input type="text" ng-model="scientificNotationInput" placeholder="Enter a number">
+                <button ng-click="convertScientificNotation()">Convert</button>
+                <div ng-show="scientificNotationResult">
+                    <p>Decimal: {{scientificNotationResult.decimal}}</p>
+                    <p>Scientific Notation: {{scientificNotationResult.scientific}}</p>
+                </div>
+            </div>
+        </div>
+        <div class="history">
+            <h2><i class="fas fa-history"></i> History</h2>
+            <ul>
+                <li ng-repeat="item in history track by $index">{{item}}</li>
+            </ul>
+            <button ng-click="clearHistory()" class="clear-history"><i class="fas fa-trash"></i> Clear History</button>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 DK CalcX. All rights reserved.</p>
+        <div class="social-links">
+            <a href="#" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+            
+            <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
+            <a href="#" aria-label="GitHub"><i class="fab fa-github"></i></a>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
